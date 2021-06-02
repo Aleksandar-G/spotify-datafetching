@@ -1,6 +1,7 @@
 @extends('layouts.base')
 @section('body')
-<button type="button" onclick="window.location='{{ url("/auth") }}'" > login</button>
+
+<button type="button" onclick="window.location='{{ url("/logout") }}'" > logout</button>
 
 <section>
     <h2>Songs</h2>
@@ -8,5 +9,5 @@
 
     <p>{{ $track->track->name }}</p>
 @endforeach
-</section>
+
 @endsection

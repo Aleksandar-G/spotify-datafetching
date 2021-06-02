@@ -11,6 +11,7 @@ use Session;
 use SpotifyWebAPI;
 use View;
 use App\Models\Track;
+use App\Models\User;
 
 
 class LoginController extends Controller
@@ -32,7 +33,17 @@ class LoginController extends Controller
                 env('REDIRECT_URI')
             );
 
+            $options = [
+                'scope' => [
+                    'user-read-email',
+                    'user-top-read',
+                    'user-read-recently-played'
+                ],
+            ];
+
             $response = $this->spotifyClient->getAuthorizeUrl($options);
+
+
 
             $js_code = 'console.log(' . json_encode($response, JSON_HEX_TAG) .
                 ');';
@@ -61,6 +72,10 @@ class LoginController extends Controller
                 # foreach ($usersTopTracks->items as $key) {
                 #   Track::store($key);
                 #}
+                return redirect($response);
+                #return redirect('/');
+            }
+            else{
                 return redirect('/');
             }
             #$this->tracks = $usersTopTracks->items;
@@ -124,11 +139,24 @@ class LoginController extends Controller
     {
 
         #$playlist = $this->spotifyApi->getTrack('3yraHvsUkmnJjGhOrx1CSg?si=2b0ceb2b2fa74f35');
-        $test = Cache::get('accessToken');
+        $token = Cache::get('accessToken');
 
         $api = new SpotifyWebAPI\SpotifyWebAPI();
         $api->setAccessToken(Cache::get('accessToken'));
 
+        #gets the email of the user
+        $user = $api->me();
+
+        $user = User::firstOrCreate(
+
+            ['email' => $user->email],
+            ['code' => $token]
+
+
+        );
+
+        
+        # get the tracks from the user
         $usersTopTracks = $api->getMyRecentTracks();
         $this->userTracks = $usersTopTracks->items;
         
@@ -149,5 +177,10 @@ class LoginController extends Controller
 
         #$mytop = $this->spotifyApi->getMyCurrentTrack();
         return view('welcome', ['userTopTracks' => $this->userTracks]);
+    }
+
+    public function signout()
+    {       
+        Cache::forget('accessToken');
     }
 }
