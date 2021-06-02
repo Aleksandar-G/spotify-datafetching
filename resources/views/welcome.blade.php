@@ -22,7 +22,8 @@
     </head>
     <body>
         <button type="button" onclick="window.location='{{ url("/auth") }}'" > hello</button>
-
-        
+        @foreach ($userTopTracks as $track)
+            <p>{{ $track->track->name }}</p>
+        @endforeach
     </body>
 </html>
