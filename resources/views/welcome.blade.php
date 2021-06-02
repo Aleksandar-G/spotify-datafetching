@@ -22,8 +22,13 @@
     </head>
     <body>
         <button type="button" onclick="window.location='{{ url("/auth") }}'" > hello</button>
+
+        <section>
+            <h2>Songs</h2>
         @foreach ($userTopTracks as $track)
+        
             <p>{{ $track->track->name }}</p>
         @endforeach
+        </section>
     </body>
 </html>

@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+
+use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Auth;
 use Cache;
@@ -128,7 +130,14 @@ class LoginController extends Controller
         $api->setAccessToken(Cache::get('accessToken'));
 
         $usersTopTracks = $api->getMyRecentTracks();
-        $this->userTracks = $usersTopTracks->items; 
+        $this->userTracks = $usersTopTracks->items;
+        
+        foreach ($usersTopTracks->items as $key) {
+
+            $track = Track::firstOrCreate([
+                'name' => $key->track->name
+            ]);
+        }
 
         $js_code = 'console.log(' . json_encode($this->userTracks, JSON_HEX_TAG) .
             ');';
