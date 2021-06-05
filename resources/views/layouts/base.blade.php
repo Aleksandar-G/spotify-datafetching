@@ -29,6 +29,7 @@
             <p>{{ $track->name }}</p>
         @endforeach
         </section>
+        
         <section id="section-artists">
             <h2>Artists</h2>
             @foreach ($userArtists as $artist)
