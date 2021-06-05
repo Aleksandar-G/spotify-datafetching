@@ -1,12 +1,6 @@
 @extends('layouts.base')
 @section('body')
-<button type="button" onclick="window.location='{{ url("/auth") }}'" > login</button>
 
-<section>
-    <h2>Songs</h2>
-@foreach ($userTopTracks as $track)
+<button type="button" class="btn btn-primary mt-5 mx-5" id="button" onclick="window.location='{{ url("/auth") }}'">login</button>
 
-    <p>{{ $track->track->name }}</p>
-@endforeach
-</section>
 @endsection

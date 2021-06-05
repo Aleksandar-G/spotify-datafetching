@@ -4,29 +4,23 @@ namespace App\Http\Controllers;
 
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-use Auth;
-use Cache;
-use Session;
+use App\Models\Artist;
 use SpotifyWebAPI;
-use View;
 use App\Models\Track;
 use App\Models\User;
 
 
 class LoginController extends Controller
 {
-
-    private $spotifyApi;
     private $spotifyClient;
-    private $spotifyChart;
     private $userTracks;
+    private $userArtists;
 
     public function __construct()
     {
-        // Attempt to get access token
-        if (!Cache::has('accessToken')) {
-            // Create the Spotify Client
+        # Attempt to get access token
+        if (!session()->has('accessToken')) {
+            # Create the Spotify Client
             $this->spotifyClient = new SpotifyWebAPI\Session(
                 env('SPOTIFY_ID'),
                 env('SPOTIFY_SECRET'),
@@ -37,51 +31,13 @@ class LoginController extends Controller
                 'scope' => [
                     'user-read-email',
                     'user-top-read',
-                    'user-read-recently-played'
+                    'user-read-recently-played',
+                    'user-follow-read'
                 ],
             ];
 
             $response = $this->spotifyClient->getAuthorizeUrl($options);
 
-
-
-            $js_code = 'console.log(' . json_encode($response, JSON_HEX_TAG) .
-                ');';
-            if (true) {
-                $js_code = '<script>' . $js_code . '</script>';
-            }
-            echo $js_code;
-
-            $code = request('code');
-
-            if ($code != '') {
-                $this->spotifyClient->requestAccessToken($code);
-
-                $accessToken = $this->spotifyClient->getAccessToken();
-                $refreshToken = $this->spotifyClient->getRefreshToken();
-
-                $api = new SpotifyWebAPI\SpotifyWebAPI();
-
-                $api->setAccessToken($accessToken);
-
-                Cache::put('accessToken', $accessToken);
-                #$usersTopTracks = $api->getMytop('tracks');
-                $usersTopTracks = $api->getMyRecentTracks();
-                $this->userTracks = $usersTopTracks->items; #track-> name
-
-                # foreach ($usersTopTracks->items as $key) {
-                #   Track::store($key);
-                #}
-                return redirect($response);
-                #return redirect('/');
-            }
-            else{
-                return redirect('/');
-            }
-            #$this->tracks = $usersTopTracks->items;
-            #print_r(
-            #    $api->getMytop('tracks')
-            #);
         }
     }
 
@@ -98,89 +54,99 @@ class LoginController extends Controller
             'scope' => [
                 'user-read-email',
                 'user-top-read',
-                'user-read-recently-played'
+                'user-read-recently-played',
+                'user-follow-read'
             ],
         ];
 
         $response = $this->spotifyClient->getAuthorizeUrl($options);
 
-        $js_code = 'console.log(' . json_encode($response, JSON_HEX_TAG) .
-            ');';
-        if (true) {
-            $js_code = '<script>' . $js_code . '</script>';
-        }
-        echo $js_code;
-
-        $code = request('code');
-
-        if ($code != '') {
-            $this->spotifyClient->requestAccessToken($code);
-
-            $accessToken = $this->spotifyClient->getAccessToken();
-            $refreshToken = $this->spotifyClient->getRefreshToken();
-
-            $api = new SpotifyWebAPI\SpotifyWebAPI();
-
-            $api->setAccessToken($accessToken);
-
-            Cache::put('accessToken', $accessToken);
-
-            return redirect($response);
-        
-        }
-        else
-        {
-            return redirect('/');
-        }
+        return redirect($response);
 
     }
 
     public function index()
     {
+        $code = request('code');
 
-        #$playlist = $this->spotifyApi->getTrack('3yraHvsUkmnJjGhOrx1CSg?si=2b0ceb2b2fa74f35');
-        $token = Cache::get('accessToken');
+        if ($code != '') {
 
-        $api = new SpotifyWebAPI\SpotifyWebAPI();
-        $api->setAccessToken(Cache::get('accessToken'));
+            $this->spotifyClient->requestAccessToken($code);
 
-        #gets the email of the user
-        $user = $api->me();
+            $accessToken = $this->spotifyClient->getAccessToken();
+            $refreshToken = $this->spotifyClient->getRefreshToken();
+    
+            $api = new SpotifyWebAPI\SpotifyWebAPI();
+    
+            $api->setAccessToken($accessToken);
+    
+            session(['accessToken' => $accessToken]);
 
-        $user = User::firstOrCreate(
-
-            ['email' => $user->email],
-            ['code' => $token]
-
-
-        );
-
-        
-        # get the tracks from the user
-        $usersTopTracks = $api->getMyRecentTracks();
-        $this->userTracks = $usersTopTracks->items;
-        
-        foreach ($usersTopTracks->items as $key) {
-
-            $track = Track::firstOrCreate([
-                'name' => $key->track->name
-            ]);
+            return redirect('/');
         }
 
-        $js_code = 'console.log(' . json_encode($this->userTracks, JSON_HEX_TAG) .
+        if (session()->has('accessToken')) {
+            $token = session()->get('accessToken');
+
+            $api = new SpotifyWebAPI\SpotifyWebAPI();
+            $api->setAccessToken(session()->get('accessToken'));
+
+            #gets the email of the user
+            $user = $api->me();
+
+            $user = User::firstOrCreate(
+
+                ['email' => $user->email],
+                ['code' => $token]
+
+            );
+
+            # get the tracks from the user
+            $usersTopTracks = $api->getMyRecentTracks();
+            $dataUserTracks= [];
+            $dataUserArtists= [];
+
+            $userArtists = $api->getUserFollowedArtists();
+
+            $js_code = 'console.log(' . json_encode($userArtists, JSON_HEX_TAG) . 
             ');';
-        if (true) {
-            $js_code = '<script>' . $js_code . '</script>';
-        }
-        echo $js_code;
-        #$of = array($this->tracks);
+                if (true) {
+                    $js_code = '<script>' . $js_code . '</script>';
+                }
+                echo $js_code;
 
-        #$mytop = $this->spotifyApi->getMyCurrentTrack();
-        return view('welcome', ['userTopTracks' => $this->userTracks]);
+            foreach ($usersTopTracks->items as $key) {
+
+                $track = Track::firstOrCreate([
+                    'name' => $key->track->name
+                ]);
+                array_push($dataUserTracks, $key->track);
+            }
+
+            foreach ($userArtists->artists->items as $key) {
+
+                $artist = Artist::firstOrCreate([
+                    'name' => $key->name
+                ]);
+                array_push($dataUserArtists, $key);
+            }
+
+            $this->userTracks = $dataUserTracks;
+            $this->userArtists = $dataUserArtists;
+
+            return view('userView', ['userTopTracks' => $this->userTracks , 'userArtists' => $this->userArtists]);
+        } else {
+
+            $this->userTracks = Track::all();
+            $this->userArtists = Artist::all();
+
+            return view('welcome', ['userTopTracks' => $this->userTracks , 'userArtists' => $this->userArtists]);
+        }
     }
 
     public function signout()
-    {       
-        Cache::forget('accessToken');
+    {
+        session()->flush();
+        return redirect('/');
     }
 }

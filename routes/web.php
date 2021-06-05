@@ -18,3 +18,4 @@ use App\Http\Controllers\UserController;
 Route::get('/', [LoginController::class, 'index'] );
 Route::get('/auth', [LoginController::class, 'auth'] );
 Route::get('/user', [UserController::class, 'index'] );
+Route::get('/signout', [LoginController::class, 'signout'] );
